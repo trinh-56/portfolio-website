@@ -1,0 +1,4 @@
+{"id":"116c9924-57aa-4cab-9cce-41606821c932","ts":"2026-10-03T16:10:02.523Z","severity":"info","message":"GSD MCP Server Prepared at /Users/trinh.56/Documents/automation-projects/portfolio-website/.mcp.json","source":"notify","read":false}
+{"id":"5853cc68-33ab-446e-b883-937dcbb56d33","ts":"2026-10-03T16:10:18.069Z","severity":"warning","message":"Web search: Set BRAVE_API_KEY or use an Anthropic model for built-in search","source":"notify","read":false}
+{"id":"ab05ede5-ac37-4cb9-afec-c220c1441eef","ts":"2026-10-03T16:10:18.070Z","severity":"info","message":"Model: deepseek/deepseek-v4-pro","source":"notify","read":false}
+{"id":"45fd4940-a016-4041-ba11-23f019a9e0cc","ts":"2026-10-03T16:22:36.453Z","severity":"warning","message":"Unknown: /gsd exit. Run /gsd help for available commands.","source":"notify","read":false}
