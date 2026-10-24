@@ -1,292 +1,149 @@
-// Carousel Functionality
-class Carousel {
-  constructor(containerId) {
-    this.container = document.getElementById(containerId);
-    if (!this.container) return;
-    
-    this.track = this.container.querySelector('.carousel-track');
-    this.slides = this.container.querySelectorAll('.carousel-slide');
-    this.prevBtn = this.container.querySelector('.carousel-prev');
-    this.nextBtn = this.container.querySelector('.carousel-next');
-    this.dots = this.container.querySelectorAll('.carousel-dot');
-    
-    this.currentIndex = 0;
-    this.totalSlides = this.slides.length;
-    this.isTransitioning = false;
-    this.touchStartX = 0;
-    this.touchEndX = 0;
-    this.wheelTimeout = null;
-    this.wheelDelta = 0;
-    this.mouseDownX = 0;
-    this.isDragging = false;
-    
-    this.init();
-  }
-
-  init() {
-    this.attachEventListeners();
-    this.updateDots();
-  }
-
-  attachEventListeners() {
-    if (!this.prevBtn || !this.nextBtn) return;
-    
-    // Button clicks
-    this.prevBtn.addEventListener('click', () => this.prev());
-    this.nextBtn.addEventListener('click', () => this.next());
-
-    // Dot clicks
-    this.dots.forEach((dot) => {
-      dot.addEventListener('click', (e) => {
-        const index = parseInt(e.target.getAttribute('data-index'));
-        this.goToSlide(index);
-      });
-    });
-
-    // Touch events for swipe
-    this.container.addEventListener('touchstart', (e) => this.handleTouchStart(e), false);
-    this.container.addEventListener('touchmove', (e) => this.handleTouchMove(e), false);
-    this.container.addEventListener('touchend', (e) => this.handleTouchEnd(e), false);
-
-    // Wheel/Scroll events
-    this.container.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
-
-    // Mouse drag support
-    this.container.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-    this.container.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-    this.container.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-    this.container.addEventListener('mouseleave', (e) => this.handleMouseUp(e));
-  }
-
-  handleTouchStart(e) {
-    this.touchStartX = e.changedTouches[0].screenX;
-    this.isDragging = true;
-  }
-
-  handleTouchMove(e) {
-    if (!this.isDragging) return;
-    this.touchEndX = e.changedTouches[0].screenX;
-    this.updateDragPreview();
-  }
-
-  handleTouchEnd(e) {
-    if (!this.isDragging) return;
-    this.isDragging = false;
-    this.handleSwipe();
-  }
-
-  handleMouseDown(e) {
-    if (e.button !== 0) return;
-    this.mouseDownX = e.clientX;
-    this.touchStartX = e.clientX;
-    this.isDragging = true;
-    this.container.style.cursor = 'grabbing';
-  }
-
-  handleMouseMove(e) {
-    if (!this.isDragging || this.touchStartX === 0) return;
-    this.touchEndX = e.clientX;
-    this.updateDragPreview();
-  }
-
-  handleMouseUp(e) {
-    if (!this.isDragging) return;
-    this.isDragging = false;
-    this.handleSwipe();
-    this.touchStartX = 0;
-    this.touchEndX = 0;
-    this.container.style.cursor = 'grab';
-  }
-
-  updateDragPreview() {
-    const diff = this.touchStartX - this.touchEndX;
-    const dragPercent = (diff / this.container.offsetWidth) * 100;
-    // Show smooth preview during drag
-    if (Math.abs(dragPercent) < 50) {
-      this.track.style.transition = 'none';
-      const currentTranslate = -this.currentIndex * 100;
-      this.track.style.transform = `translateX(${currentTranslate - dragPercent}%)`;
-    }
-  }
-
-  handleSwipe() {
-    const threshold = 25; // Swipe threshold percentage
-    const diff = this.touchStartX - this.touchEndX;
-    const dragPercent = (diff / this.container.offsetWidth) * 100;
-
-    // Re-enable transition for the final snap
-    this.track.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
-
-    if (Math.abs(dragPercent) > threshold) {
-      if (dragPercent > 0) {
-        this.next();
-      } else {
-        this.prev();
-      }
-    } else {
-      // Snap back to current slide
-      this.updateCarousel();
-    }
-  }
-
-  handleWheel(e) {
-    e.preventDefault();
-
-    if (this.isDragging) return;
-
-    // Accumulate wheel delta
-    this.wheelDelta += e.deltaY > 0 ? 1 : -1;
-
-    if (this.wheelTimeout) clearTimeout(this.wheelTimeout);
-
-    if (Math.abs(this.wheelDelta) >= 3) {
-      if (this.wheelDelta > 0) {
-        this.next();
-      } else {
-        this.prev();
-      }
-      this.wheelDelta = 0;
-    }
-
-    this.wheelTimeout = setTimeout(() => {
-      this.wheelDelta = 0;
-    }, 300);
-  }
-
-  prev() {
-    if (this.isTransitioning) return;
-    this.currentIndex = (this.currentIndex - 1 + this.totalSlides) % this.totalSlides;
-    this.updateCarousel();
-  }
-
-  next() {
-    if (this.isTransitioning) return;
-    this.currentIndex = (this.currentIndex + 1) % this.totalSlides;
-    this.updateCarousel();
-  }
-
-  goToSlide(index) {
-    if (this.isTransitioning || index === this.currentIndex) return;
-    this.currentIndex = index;
-    this.updateCarousel();
-  }
-
-  updateCarousel() {
-    this.isTransitioning = true;
-
-    // Smooth easing for snap animation
-    this.track.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    
-    const translateX = -this.currentIndex * 100;
-    this.track.style.transform = `translateX(${translateX}%)`;
-
-    setTimeout(() => {
-      this.isTransitioning = false;
-    }, 300);
-
-    this.updateDots();
-  }
-
-  updateDots() {
-    this.dots.forEach((dot, index) => {
-      if (index === this.currentIndex) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.remove('active');
-      }
-    });
-  }
-}
-
-// Initialize carousel when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  new Carousel('packageCarousel');
-});
+  // Plan buttons preselect the plan in the contact form
+  const planSelect = document.getElementById('f-plan');
+  document.querySelectorAll('[data-plan]').forEach(btn => {
+    btn.addEventListener('click', () => { planSelect.value = btn.dataset.plan; });
+  });
 
-// GSAP Scroll Zoom and Reveal Effects
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined' && typeof ScrollSmoother !== 'undefined') {
-    gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
-
-    const smoother = ScrollSmoother.create({
-      smooth: 1,
-      effects: true,
-      normalizeScroll: false // THIS MUST BE FALSE TO FIX THE FLOATING HEADER
-    });
-
-    // --- NEW: Header link ScrollSmoother interceptor ---
-    const navLinks = document.querySelectorAll('.nav-pill-shell a');
-    navLinks.forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const targetId = this.getAttribute('href'); 
-        smoother.scrollTo(targetId, true, "top top"); 
-      });
-    });
-
-    const zoomContainer = document.querySelector('.zoom-container');
-    if (zoomContainer) {
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: ".zoom-container",
-            start: "top top",
-            end: "+=150%",
-            pin: true,
-            scrub: 1
-          }
-        })
-        .to(
-          ".zoom-item[data-layer='3']",
-          { opacity: 1, z: 800, ease: "power1.inOut" },
-          0
-        )
-        .to(
-          ".zoom-item[data-layer='2']",
-          { opacity: 1, z: 600, ease: "power1.inOut" },
-          0
-        )
-        .to(
-          ".zoom-item[data-layer='1']",
-          { opacity: 1, z: 400, ease: "power1.inOut" },
-          0
-        )
-        .to(
-          ".heading",
-          { opacity: 1, z: 50, ease: "power1.inOut" },
-          0
-        );
-    }
+  const loader = document.querySelector('.loader');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion || typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined' ||
+      typeof ScrollSmoother === 'undefined' || typeof SplitText === 'undefined') {
+    loader.remove();
+    return;
   }
 
-  if (typeof SplitText !== 'undefined' && typeof gsap !== 'undefined') {
-    const revealText = document.querySelector(".opacity-reveal");
-    if (revealText) {
-      const splitLetters = SplitText.create(revealText);
-      gsap.set(splitLetters.chars, { opacity: "0.2" });
+  document.documentElement.classList.add('js-motion');
+  gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: ".section-stick",
-            pin: true,
-            start: "center center",
-            end: "+=600", /* MASSIVELY REDUCED SCROLL GAP HERE */
-            scrub: 1
-          }
-        })
-        .to(splitLetters.chars, {
-          opacity: "1",
-          duration: 1,
-          ease: "none",
-          stagger: 1
-        })
-        .to({}, { duration: 2 }) /* SHORTER HOLD */
-        .to(".opacity-reveal", {
-          opacity: "0",
-          scale: 1.1,
-          duration: 20 /* SHORTER FADE OUT */
-        });
+  const smoother = ScrollSmoother.create({
+    smooth: 1,
+    effects: true,
+    normalizeScroll: false // THIS MUST BE FALSE TO FIX THE FLOATING HEADER
+  });
+
+  // Route every in-page link through ScrollSmoother
+  document.querySelectorAll('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      smoother.scrollTo(link.getAttribute('href'), true, 'top 64px');
+    });
+  });
+
+  // --- Hero text, hidden behind the loader ---
+  const heroRest = '.hero .eyebrow, .hero p, .hero .btn, .trust-row li, .circle-cta, nav';
+  gsap.set('.hero-title', { autoAlpha: 0 });
+  gsap.set(heroRest, { autoAlpha: 0, y: 24, filter: 'blur(8px)' });
+  // Split when the reveal starts, so the web font has loaded and line breaks are final
+  const revealHeroTitle = () => SplitText.create('.hero-title', {
+    type: 'lines',
+    mask: 'lines',
+    autoSplit: true,
+    onSplit: self => {
+      gsap.set('.hero-title', { autoAlpha: 1 });
+      return gsap.from(self.lines, { yPercent: 110, duration: 1.1, ease: 'expo.out', stagger: 0.1 });
     }
-  }
+  });
+
+  // --- Loader: rolling 000 -> 100 counter, then wipe up ---
+  // Each strip is a column of digits; we slide it by the running value / place.
+  const strips = [...loader.querySelectorAll('.strip')];
+  strips.forEach(strip => {
+    const count = 100 / strip.dataset.place + 1;
+    strip.innerHTML = Array.from({ length: count }, (_, i) => `<span>${i % 10}</span>`).join('');
+  });
+  const counter = { v: 0 };
+
+  gsap.timeline()
+    .to(counter, {
+      v: 100,
+      duration: 1.6,
+      ease: 'power2.inOut',
+      onUpdate: () => strips.forEach(s => {
+        // Odometer: a column only rolls while the column to its right goes 9 -> 0
+        const place = +s.dataset.place;
+        const index = Math.floor(counter.v / place) + Math.max(0, (counter.v % place) - (place - 1));
+        gsap.set(s, { yPercent: -index * (100 / s.children.length) });
+      })
+    })
+    .to(loader, { clipPath: 'inset(0 0 100% 0)', duration: 0.8, ease: 'power3.inOut' }, '+=0.15')
+    .add(() => loader.remove())
+    .add(revealHeroTitle, '-=0.45')
+    .to(heroRest, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.7, ease: 'power2.out', stagger: 0.05 }, '-=0.8');
+
+  // --- Section headings: lines slide up out of a mask ---
+  gsap.utils.toArray('.section-title, .heading h3').forEach(title => {
+    SplitText.create(title, {
+      type: 'lines',
+      mask: 'lines',
+      autoSplit: true,
+      onSplit: self => gsap.from(self.lines, {
+        yPercent: 110,
+        duration: 1,
+        ease: 'expo.out',
+        stagger: 0.1,
+        scrollTrigger: { trigger: title, start: 'top 85%' }
+      })
+    });
+  });
+
+  // --- Body text: lines un-blur as they rise in ---
+  const blurText = '.section .eyebrow, .section > div > p.secondary-text, #contact p.text-lg, .industries, .steps p, .steps h4, .plan-note, .proof .secondary-text';
+  gsap.utils.toArray(blurText).forEach(text => {
+    SplitText.create(text, {
+      type: 'lines',
+      autoSplit: true,
+      onSplit: self => gsap.from(self.lines, {
+        autoAlpha: 0,
+        y: 15,
+        filter: 'blur(10px)',
+        duration: 0.6,
+        ease: 'power1.out',
+        stagger: 0.12,
+        scrollTrigger: { trigger: text, start: 'top 85%' }
+      })
+    });
+  });
+
+  // --- Cards: clip-path wipe from the bottom-right corner ---
+  const HIDDEN = 'polygon(100% 100%, 100% 100%, 100% 100%, 100% 100%)';
+  const FULL = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+  ['.funnel', '.plans', '.faq'].forEach(group => {
+    gsap.fromTo(`${group} > *`, { clipPath: HIDDEN }, {
+      clipPath: FULL,
+      duration: 1,
+      ease: 'power2.inOut',
+      stagger: 0.15,
+      scrollTrigger: { trigger: group, start: 'top 80%' }
+    });
+  });
+
+  // --- Stats: count up the number inside each stat ---
+  document.querySelectorAll('.stat').forEach(stat => {
+    const [, pre, num, post] = stat.textContent.match(/^(\D*)(\d+)(.*)$/);
+    const n = { v: 0 };
+    gsap.to(n, {
+      v: +num,
+      duration: 1.5,
+      ease: 'power2.out',
+      scrollTrigger: { trigger: stat, start: 'top 90%' },
+      onUpdate: () => { stat.textContent = pre + Math.round(n.v) + post; }
+    });
+  });
+
+  // --- Creative zoom gallery ---
+  gsap
+    .timeline({
+      scrollTrigger: {
+        trigger: '.zoom-container',
+        start: 'top top',
+        end: '+=150%',
+        pin: true,
+        scrub: 1
+      }
+    })
+    .to(".zoom-item[data-layer='3']", { opacity: 1, z: 800, ease: 'power1.inOut' }, 0)
+    .to(".zoom-item[data-layer='2']", { opacity: 1, z: 600, ease: 'power1.inOut' }, 0)
+    .to(".zoom-item[data-layer='1']", { opacity: 1, z: 400, ease: 'power1.inOut' }, 0)
+    .to('.heading', { opacity: 1, z: 50, ease: 'power1.inOut' }, 0);
 });
